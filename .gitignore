@@ -1,0 +1,16 @@
+# Ignore practice project
+practice_with_api/
+
+# Node
+node_modules
+build
+.env
+
+# .NET
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
