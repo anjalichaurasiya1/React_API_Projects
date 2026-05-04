@@ -43,7 +43,12 @@ namespace product_api.Controllers
                 using SqlDataReader dr = cmd.ExecuteReader();
 
                 if (!dr.Read())
-                    return Unauthorized("Invalid username or password");
+                    return Unauthorized(new
+                    {
+                        success = false,
+                        message = "Invalid username or password"
+                    });
+
 
                 //  READ DATA FROM DB
                 var userId = dr["EmpId"].ToString();
@@ -89,7 +94,13 @@ namespace product_api.Controllers
             }
             catch (Exception ex)
             {
-                return StatusCode(500, ex.Message);
+                return StatusCode(500, new
+                {
+                    success = false,
+                    message = "Internal server error",
+                    error = ex.Message
+                });
+
             }
         }
 
@@ -115,6 +126,6 @@ namespace product_api.Controllers
         public string? Username { get; set; }
         public string? Password { get; set; }
         public string? Level { get; set; }
-        public string? Mode { get; set; }
+       
     }
 }

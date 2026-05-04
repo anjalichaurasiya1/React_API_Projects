@@ -116,15 +116,28 @@ public IActionResult GetData(int? id, [FromQuery] string? name)
         [HttpDelete("delete/{id}")]
         public IActionResult Delete(int id)
         {
-            using SqlConnection con = GetConnection();
-            using SqlCommand cmd = new SqlCommand("DELETE_SUBCONTRACTOR", con);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@Id", id);
+            try
+            {
+                using SqlConnection con = GetConnection();
+                using SqlCommand cmd = new SqlCommand("DELETE_SUBCONTRACTOR", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@Id", id);
 
-            con.Open();
-            cmd.ExecuteNonQuery();
+                con.Open();
+                int rows = cmd.ExecuteNonQuery();
 
-            return Ok("Deleted Successfully");
+                if (rows > 0)
+                    return Ok(new { message = "Deleted Successfully" });
+                else
+                    return NotFound(new { message = "Record not found" });
+            }
+            catch (SqlException)
+            {
+                return BadRequest(new
+                {
+                    message = "Client used by other records. Cannot be deleted."
+                });
+            }
         }
 
     }

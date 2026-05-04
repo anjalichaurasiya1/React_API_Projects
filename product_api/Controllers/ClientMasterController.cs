@@ -21,59 +21,140 @@ namespace product_api.Controllers
         }
 
 
-//     [HttpPost("savevendordetails")]
-// public IActionResult SaveVendorDetails([FromBody] VendorDetailsModel model)
-// {
-//     try
-//     {
-//         using SqlConnection con = GetConnection();
-//         using SqlCommand cmd = new SqlCommand("sp_InsertVendorDetails", con);
-//         cmd.CommandType = CommandType.StoredProcedure;
+        //     [HttpPost("savevendordetails")]
+        // public IActionResult SaveVendorDetails([FromBody] VendorDetailsModel model)
+        // {
+        //     try
+        //     {
+        //         using SqlConnection con = GetConnection();
+        //         using SqlCommand cmd = new SqlCommand("sp_InsertVendorDetails", con);
+        //         cmd.CommandType = CommandType.StoredProcedure;
 
-//         cmd.Parameters.AddWithValue("@VendorId", model.VendorId);
-//         cmd.Parameters.AddWithValue("@V_Name", model.VendorName ?? "");
-//         cmd.Parameters.AddWithValue("@New_Address", model.New_Address ?? "");
-//         cmd.Parameters.AddWithValue("@New_GSTNo", model.New_GSTNo ?? "");
-//         cmd.Parameters.AddWithValue("@ApplicableFrom", model.ApplicableFrom);
-//         cmd.Parameters.AddWithValue("@CreatedBy", model.CreatedBy ?? "");
+        //         cmd.Parameters.AddWithValue("@VendorId", model.VendorId);
+        //         cmd.Parameters.AddWithValue("@V_Name", model.VendorName ?? "");
+        //         cmd.Parameters.AddWithValue("@New_Address", model.New_Address ?? "");
+        //         cmd.Parameters.AddWithValue("@New_GSTNo", model.New_GSTNo ?? "");
+        //         cmd.Parameters.AddWithValue("@ApplicableFrom", model.ApplicableFrom);
+        //         cmd.Parameters.AddWithValue("@CreatedBy", model.CreatedBy ?? "");
 
-//         con.Open();
-//         cmd.ExecuteNonQuery();
+        //         con.Open();
+        //         cmd.ExecuteNonQuery();
 
-//         return Ok(new { message = "Saved Successfully" });
-//     }
-//     catch (Exception ex)
-//     {
-//         return StatusCode(500, ex.Message);
-//     }
-// }
+        //         return Ok(new { message = "Saved Successfully" });
+        //     }
+        //     catch (Exception ex)
+        //     {
+        //         return StatusCode(500, ex.Message);
+        //     }
+        // }
+
+
+
+        [HttpGet("search-client")]
+        public IActionResult SearchClient(long? clientId = null, string? name = null, string? city = null, string? branch = null)
+        {
+            try
+            {
+                List<ClientModel> list = new();
+
+                using SqlConnection con = GetConnection();
+                using SqlCommand cmd = new SqlCommand("SEARCH_CLIENT", con);
+                cmd.CommandType = CommandType.StoredProcedure;
+
+                // Parameters (same logic as your SP)
+                if (clientId != null)
+                    cmd.Parameters.AddWithValue("@clientId", clientId);
+
+                if (!string.IsNullOrWhiteSpace(name))
+                    cmd.Parameters.AddWithValue("@name", name);
+
+                if (!string.IsNullOrWhiteSpace(city))
+                    cmd.Parameters.AddWithValue("@City", city);
+
+                if (!string.IsNullOrWhiteSpace(branch))
+                    cmd.Parameters.AddWithValue("@Branch", branch);
+
+                con.Open();
+                using SqlDataReader dr = cmd.ExecuteReader();
+
+                while (dr.Read())
+                {
+                    ClientModel c = new();
+
+                    // 🔹 When Branch NOT provided → Client Master
+                    if (string.IsNullOrWhiteSpace(branch))
+                    {
+                        c.ClientId = Convert.ToInt32(dr["clientId"]);
+                        c.ClientName = dr["Name"]?.ToString();
+                        c.Address = dr["address"]?.ToString();
+                        c.City = dr["city"]?.ToString();
+                        c.VatTinNo = dr["VatTinNo"]?.ToString();
+                        c.ServiceTax = dr["ServiceTax"]?.ToString();
+                        c.PanNo = dr["Panno"]?.ToString();
+                        c.PanDoc = dr["Filename"]?.ToString();
+                        c.GSTNo = dr["GstNO"]?.ToString();
+                        c.State = dr["State"]?.ToString();
+                        c.CreditDays = dr["CreditPeriod"] != DBNull.Value ? Convert.ToInt32(dr["CreditPeriod"]) : (int?)null;
+                        c.ShowMIS = dr["SHOW_MIS"]?.ToString();
+                        c.Pin = dr["PinCode"]?.ToString();
+                        c.Currency = dr["Currency"]?.ToString();
+                        c.Type = dr["Type"]?.ToString();
+                    }
+                    // 🔹 When Branch provided → Contact Details
+                    else
+                    {
+                        c.ClientId = Convert.ToInt32(dr["ClientId"]);
+                        c.ContactName = dr["Name"]?.ToString();
+                        c.ContactCity = dr["City"]?.ToString();
+                    }
+
+                    list.Add(c);
+                }
+
+                if (list.Count == 0)
+                    return NotFound("No client found");
+
+                return Ok(list);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, ex.Message);
+            }
+        }
+
         // 🔹 SAVE (INSERT/UPDATE)
-[HttpPost("save")]
+
+       [HttpPost("save")]
 public IActionResult Save([FromForm] ClientModel model, IFormFile? file)
 {
     try
     {
         using SqlConnection con = GetConnection();
-        int vendorId;
+        int clientId;
 
-        bool isUpdate = model.Id > 0;
+        bool isUpdate = model.ClientId > 0;
         string spName = isUpdate ? "UPDATE_CLIENT" : "INSERT_CLIENT";
 
         using SqlCommand cmd = new SqlCommand(spName, con);
         cmd.CommandType = CommandType.StoredProcedure;
-        
 
-        // ================= FILE =================
+        // ================= FILE UPLOAD =================
         string fileName = "";
         string filePath = "";
 
         if (file != null && file.Length > 0)
         {
-            string uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+            string uploadDir = Path.Combine(
+                Directory.GetCurrentDirectory(),
+                "wwwroot",
+                "uploads",
+                "clients"
+            );
+
             if (!Directory.Exists(uploadDir))
                 Directory.CreateDirectory(uploadDir);
 
-            fileName = Path.GetFileName(file.FileName);
+            fileName = Guid.NewGuid().ToString() + Path.GetExtension(file.FileName);
             filePath = Path.Combine(uploadDir, fileName);
 
             using var stream = new FileStream(filePath, FileMode.Create);
@@ -83,36 +164,39 @@ public IActionResult Save([FromForm] ClientModel model, IFormFile? file)
         // ================= COMMON INPUT =================
         cmd.Parameters.AddWithValue("@name", model.ClientName ?? "");
         cmd.Parameters.AddWithValue("@address", model.Address ?? "");
-        cmd.Parameters.AddWithValue("@city", model.Telephone ?? "");
+       cmd.Parameters.AddWithValue("@city", model.City ?? "");  
         cmd.Parameters.AddWithValue("@VatTin", model.VatTinNo ?? "");
         cmd.Parameters.AddWithValue("@Servicetax", model.ServiceTax ?? "");
         cmd.Parameters.AddWithValue("@Panno", model.PanNo ?? "");
-        cmd.Parameters.AddWithValue("@fileName", fileName);
         cmd.Parameters.AddWithValue("@FilePath", filePath);
+        cmd.Parameters.AddWithValue("@fileName", fileName);
         cmd.Parameters.AddWithValue("@GSTNo", model.GSTNo ?? "");
-        cmd.Parameters.AddWithValue("@State", model.EmailId ?? "");
-        cmd.Parameters.AddWithValue("@CreditPeriod", model.CreditDays ?? "");
+       cmd.Parameters.AddWithValue("@State", model.State ?? "");
+        cmd.Parameters.AddWithValue("@CreditPeriod", model.CreditDays ?? 0);
         cmd.Parameters.AddWithValue("@PinNo", model.Pin ?? "");
         cmd.Parameters.AddWithValue("@Currency", model.Currency ?? "");
         cmd.Parameters.AddWithValue("@Type", model.Type ?? "");
-        cmd.Parameters.AddWithValue("@ShowMIS", model.ShowMIS ?? "");
-        
-        
+                if (!isUpdate)
+                {
+                    cmd.Parameters.AddWithValue("@ShowMIS", model.ShowMIS ?? "1");
+                }
 
-        // ================= ID HANDLING =================
-        SqlParameter idParam = new SqlParameter("@clientId", SqlDbType.Int);
+                // ================= ID HANDLING =================
+                SqlParameter idParam = new SqlParameter("@clientId", SqlDbType.Int);
+
         if (isUpdate)
         {
             idParam.Direction = ParameterDirection.Input;
-            idParam.Value = model.Id;
+            idParam.Value = model.ClientId;
         }
         else
         {
             idParam.Direction = ParameterDirection.Output;
         }
+
         cmd.Parameters.Add(idParam);
 
-        // ================= OUTPUT =================
+        // ================= OUTPUT PARAMS =================
         SqlParameter errorCodeParam = new SqlParameter("@errorCode", SqlDbType.Int)
         {
             Direction = ParameterDirection.Output
@@ -129,7 +213,7 @@ public IActionResult Save([FromForm] ClientModel model, IFormFile? file)
         con.Open();
         cmd.ExecuteNonQuery();
 
-         vendorId = isUpdate ? model.Id : Convert.ToInt32(idParam.Value);
+        clientId = isUpdate ? model.ClientId : Convert.ToInt32(idParam.Value);
         int errorCode = Convert.ToInt32(errorCodeParam.Value);
         string errorMsg = errorMsgParam.Value?.ToString() ?? "";
 
@@ -138,8 +222,9 @@ public IActionResult Save([FromForm] ClientModel model, IFormFile? file)
 
         return Ok(new
         {
-            VendorId = vendorId,
-            Message = errorMsg
+            ClientId = clientId,
+            Message = errorMsg,
+            FileName = fileName
         });
     }
     catch (Exception ex)
@@ -147,7 +232,6 @@ public IActionResult Save([FromForm] ClientModel model, IFormFile? file)
         return StatusCode(500, ex.Message);
     }
 }
-
 
         
 
@@ -180,7 +264,7 @@ public IActionResult Delete(int id, [FromHeader] string department)
 
         }
 
-        // =================  CHECK CLIENT DEPENDENCY =================
+      
         using (SqlCommand cmdCheck = new SqlCommand("CHECK_CLIENTID_BEFOREDELETE", con))
         {
             cmdCheck.CommandType = CommandType.StoredProcedure;
@@ -214,70 +298,7 @@ public IActionResult Delete(int id, [FromHeader] string department)
 }
 
 
-       [HttpGet("Get")]
-public IActionResult GetData(int? clientId, int? id, string? name, string? city,string? pin,string? state)
-{
-    List<ClientModel> list = new();
-
-    using SqlConnection con = GetConnection();
-    using SqlCommand cmd = new SqlCommand("SEARCH_CLIENTDETAILS", con);
-    cmd.CommandType = CommandType.StoredProcedure;
-
-    if (clientId.HasValue)
-        cmd.Parameters.AddWithValue("@ClientId", clientId.Value);
-    else
-        cmd.Parameters.AddWithValue("@ClientId", DBNull.Value);
-
-    if (id.HasValue)
-        cmd.Parameters.AddWithValue("@Id", id.Value);
-    else
-        cmd.Parameters.AddWithValue("@Id", DBNull.Value);
-
-    if (!string.IsNullOrWhiteSpace(name))
-        cmd.Parameters.AddWithValue("@ContactName", name);
-    else
-        cmd.Parameters.AddWithValue("@ContactName", DBNull.Value);
-
-    if (!string.IsNullOrWhiteSpace(city))
-        cmd.Parameters.AddWithValue("@City", city);
-    else
-        cmd.Parameters.AddWithValue("@City", DBNull.Value);
-
-    if (!string.IsNullOrWhiteSpace(pin))
-        cmd.Parameters.AddWithValue("@Pin", pin);
-    else
-        cmd.Parameters.AddWithValue("@Pin", DBNull.Value);
-
-    if (!string.IsNullOrWhiteSpace(state))
-        cmd.Parameters.AddWithValue("@State", state);
-    else
-        cmd.Parameters.AddWithValue("@State", DBNull.Value);
-
-    con.Open();
-    using SqlDataReader dr = cmd.ExecuteReader();
-
-    while (dr.Read())
-    {
-        list.Add(new ClientModel
-        {
-            Id = Convert.ToInt32(dr["Id"]),
-            ClientId = Convert.ToInt32(dr["ClientId"]),
-            ContactName = dr["Contactname"]?.ToString(),
-            Address = dr["Address"]?.ToString(),
-            City = dr["City"]?.ToString(),
-            Pin = dr["Pin"]?.ToString(),
-            State = dr["State"]?.ToString(),
-            Department = dr["Department"]?.ToString(),
-            Telephone = dr["Telno"]?.ToString(),
-            MobileNo = dr["MobileNo"]?.ToString(),
-            EmailId = dr["EmailId"]?.ToString(),
-            GSTNo = dr["GSTNO"]?.ToString(),
-            ClientName = dr["ClientName"]?.ToString()
-        });
-    }
-
-    return Ok(list);
-}
+      
 
   }
 
@@ -294,7 +315,7 @@ public IActionResult GetData(int? clientId, int? id, string? name, string? city,
         public string? State { get; set; }
         public string? Type { get; set; }
 
-
+         public int? CreditDays { get; set; }
 
         public int Id { get; set; }
         
@@ -303,7 +324,7 @@ public IActionResult GetData(int? clientId, int? id, string? name, string? city,
         public string? PanNo { get; set; }
         public string? PanDoc { get; set; }
         public string? GSTNo { get; set; }
-        public string? CreditDays { get; set; }
+        
         public string? Currency { get; set; }
 
         public string? ShowMIS { get; set; }

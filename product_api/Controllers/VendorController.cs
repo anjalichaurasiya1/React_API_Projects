@@ -22,32 +22,32 @@ namespace product_api.Controllers
 
 
     [HttpPost("savevendordetails")]
-    public IActionResult SaveDetails([FromForm] VendorIdHolder model)
+public IActionResult SaveVendorDetails([FromBody] VendorDetailsModel model)
+{
+    try
     {
-        try{
-            using SqlConnection con = GetConnection();  
-            VendorModel vendorModel = new VendorModel();
-       int vendoridfordetails=vendorModel.Id;
-        using SqlCommand cmd = new SqlCommand("sp_InsertVendorDetails", con); 
-        cmd.CommandType = CommandType.StoredProcedure; 
-    
-        cmd.Parameters.AddWithValue("@VendorId", vendoridfordetails); 
-        cmd.Parameters.AddWithValue("@V_Name", model.VendorName ?? ""); 
-        cmd.Parameters.AddWithValue("@New_Address", model.New_Address ?? ""); 
-        cmd.Parameters.AddWithValue("@New_GSTNo", model.New_GSTNoGSTNo ?? ""); 
-        cmd.Parameters.AddWithValue("@ApplicableFrom", model.ApplicableFrom ?? DateTime.Now); 
+        using SqlConnection con = GetConnection();
+        using SqlCommand cmd = new SqlCommand("sp_InsertVendorDetails", con);
+        cmd.CommandType = CommandType.StoredProcedure;
+
+        cmd.Parameters.AddWithValue("@VendorId", model.VendorId);
+        cmd.Parameters.AddWithValue("@V_Name", model.VendorName ?? "");
+        cmd.Parameters.AddWithValue("@New_Address", model.New_Address ?? "");
+        cmd.Parameters.AddWithValue("@New_GSTNo", model.New_GSTNo ?? "");
+        cmd.Parameters.AddWithValue("@ApplicableFrom", model.ApplicableFrom);
         cmd.Parameters.AddWithValue("@CreatedBy", model.CreatedBy ?? "");
-         
-             con.Open(); 
-             cmd.ExecuteNonQuery();
-              return Ok("Saved Successfully");
-        }
-        catch(Exception ex)
-        {
-            return StatusCode(500, ex.Message);
-        }
-       
+
+        con.Open();
+        cmd.ExecuteNonQuery();
+
+        return Ok(new { message = "Saved Successfully" });
     }
+    catch (Exception ex)
+    {
+        return StatusCode(500, ex.Message);
+    }
+}
+        // 🔹 SAVE (INSERT/UPDATE)
 [HttpPost("save")]
 public IActionResult Save([FromForm] VendorModel model, IFormFile? file)
 {
@@ -69,11 +69,11 @@ public IActionResult Save([FromForm] VendorModel model, IFormFile? file)
 
         if (file != null && file.Length > 0)
         {
-            string uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "Uploads");
+          string uploadDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
             if (!Directory.Exists(uploadDir))
                 Directory.CreateDirectory(uploadDir);
 
-            fileName = Path.GetFileName(file.FileName);
+          fileName = Guid.NewGuid() + Path.GetExtension(file.FileName);
             filePath = Path.Combine(uploadDir, fileName);
 
             using var stream = new FileStream(filePath, FileMode.Create);
@@ -186,19 +186,22 @@ public IActionResult Save([FromForm] VendorModel model, IFormFile? file)
         }
 
         // 🔹 DELETE
-        [HttpDelete("delete/{id}")]
-        public IActionResult Delete(int id)
-        {
-            using SqlConnection con = GetConnection();
-            using SqlCommand cmd = new SqlCommand("DELETE_VENDOR", con);
-            cmd.CommandType = CommandType.StoredProcedure;
-            cmd.Parameters.AddWithValue("@Id", id);
+ [HttpDelete("delete/{id}")]
+public IActionResult Delete(int id)
+{
+    using SqlConnection con = GetConnection();
+    using SqlCommand cmd = new SqlCommand("DELETE_VENDOR", con);
+    cmd.CommandType = CommandType.StoredProcedure;
+    cmd.Parameters.AddWithValue("@Id", id);
 
-            con.Open();
-            cmd.ExecuteNonQuery();
+    con.Open();
+    int rows = cmd.ExecuteNonQuery();
 
-            return Ok("Deleted Successfully");
-        }
+    if (rows > 0)
+        return Ok("Deleted Successfully");
+    else
+        return NotFound("Vendor not found or already deleted");
+}
 
        [HttpGet("Get/{id}")]
    public IActionResult GetDataById(int id, [FromQuery] string? name)
@@ -267,14 +270,13 @@ public IActionResult Save([FromForm] VendorModel model, IFormFile? file)
         
 
     }
-    public  class VendorIdHolder
+    public  class VendorDetailsModel
     {
-        public  int VendorId { get; set; }
-        public string? VendorName { get; set; }
-        public string? New_Address{get; set;}
-
-        public string? New_GSTNoGSTNo { get; set; }
-        public DateTime? ApplicableFrom{get; set;}
-        public string? CreatedBy{get; set;}
+       public int VendorId { get; set; }
+    public string? VendorName { get; set; }
+    public string? New_Address { get; set; }
+    public string? New_GSTNo { get; set; }
+    public DateTime ApplicableFrom { get; set; }
+    public string? CreatedBy { get; set; }
     }
 }

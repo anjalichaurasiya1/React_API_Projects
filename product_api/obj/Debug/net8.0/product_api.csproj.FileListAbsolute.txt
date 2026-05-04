@@ -2,6 +2,7 @@ D:\api\product_api\bin\Debug\net8.0\appsettings.Development.json
 D:\api\product_api\bin\Debug\net8.0\appsettings.json
 D:\api\product_api\bin\Debug\net8.0\package-lock.json
 D:\api\product_api\bin\Debug\net8.0\package.json
+D:\api\product_api\bin\Debug\net8.0\product_api.staticwebassets.runtime.json
 D:\api\product_api\bin\Debug\net8.0\product_api.staticwebassets.endpoints.json
 D:\api\product_api\bin\Debug\net8.0\product_api.exe
 D:\api\product_api\bin\Debug\net8.0\product_api.deps.json
@@ -10,6 +11,7 @@ D:\api\product_api\bin\Debug\net8.0\product_api.dll
 D:\api\product_api\bin\Debug\net8.0\product_api.pdb
 D:\api\product_api\bin\Debug\net8.0\Azure.Core.dll
 D:\api\product_api\bin\Debug\net8.0\Azure.Identity.dll
+D:\api\product_api\bin\Debug\net8.0\Dapper.dll
 D:\api\product_api\bin\Debug\net8.0\Microsoft.AspNetCore.Authentication.JwtBearer.dll
 D:\api\product_api\bin\Debug\net8.0\Microsoft.Bcl.AsyncInterfaces.dll
 D:\api\product_api\bin\Debug\net8.0\Microsoft.Bcl.Cryptography.dll
@@ -66,6 +68,7 @@ D:\api\product_api\obj\Debug\net8.0\product_api.AssemblyInfo.cs
 D:\api\product_api\obj\Debug\net8.0\product_api.csproj.CoreCompileInputs.cache
 D:\api\product_api\obj\Debug\net8.0\product_api.MvcApplicationPartsAssemblyInfo.cs
 D:\api\product_api\obj\Debug\net8.0\product_api.MvcApplicationPartsAssemblyInfo.cache
+D:\api\product_api\obj\Debug\net8.0\product_api.sourcelink.json
 D:\api\product_api\obj\Debug\net8.0\rjimswa.dswa.cache.json
 D:\api\product_api\obj\Debug\net8.0\rjsmrazor.dswa.cache.json
 D:\api\product_api\obj\Debug\net8.0\rjsmcshtml.dswa.cache.json
